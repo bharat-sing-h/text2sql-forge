@@ -1,0 +1,12 @@
+# Larger variant: needs ~24 GB (A10G / L4 / A100). Same recipe, smaller per-device batch.
+base_model: Qwen/Qwen2.5-Coder-7B-Instruct
+train_file: data/sft/train.jsonl
+val_file: data/sft/val.jsonl
+output_dir: outputs/qwen2.5-coder-7b-sql
+quantization: 4bit
+max_seq_len: 2048
+lora: {r: 32, alpha: 64, dropout: 0.05}
+learning_rate: 1.0e-4
+num_epochs: 2
+per_device_batch_size: 2
+gradient_accumulation_steps: 8
