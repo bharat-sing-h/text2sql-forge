@@ -1,0 +1,39 @@
+model:
+  # HF repo id or a path inside the model volume (e.g. /models/merged)
+  name: Qwen/Qwen2.5-Coder-1.5B-Instruct
+  servedName: sql
+  maxModelLen: 4096
+  gpuMemoryUtilization: 0.85
+  hfTokenSecret: ""          # name of a Secret with key HF_TOKEN, for gated models
+
+vllm:
+  image: vllm/vllm-openai:v0.6.6
+  replicas: 1
+  resources:
+    limits: {nvidia.com/gpu: 1, memory: 24Gi}
+    requests: {cpu: "4", memory: 16Gi}
+  nodeSelector: {}           # e.g. {cloud.google.com/gke-accelerator: nvidia-l4}
+  tolerations:
+    - {key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}
+  cacheSize: 50Gi
+
+api:
+  image: ghcr.io/bharat-sing-h/text2sql-forge-api:0.1.0
+  replicas: 2
+  maxRepairs: 1
+  maxRows: 200
+  resources:
+    requests: {cpu: 250m, memory: 256Mi}
+    limits: {cpu: "1", memory: 512Mi}
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+  databases:
+    # read-only volume holding <db_id>/<db_id>.sqlite files
+    persistentVolumeClaim: text2sql-databases
+
+service:
+  type: ClusterIP
+  port: 80

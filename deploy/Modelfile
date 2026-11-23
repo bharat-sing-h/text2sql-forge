@@ -1,0 +1,11 @@
+# Ollama model definition for a GGUF export of the merged fine-tune.
+# Convert first (llama.cpp): python convert_hf_to_gguf.py outputs/merged --outtype q8_0 --outfile sql.gguf
+FROM ./sql.gguf
+PARAMETER temperature 0
+PARAMETER stop "<|im_end|>"
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ range .Messages }}<|im_start|>{{ .Role }}
+{{ .Content }}<|im_end|>
+{{ end }}<|im_start|>assistant
+"""

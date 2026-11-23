@@ -1,0 +1,9 @@
+# No GPU? Serve a GGUF export through Ollama instead of vLLM (slower, but runs on a laptop):
+#   ollama create sql -f deploy/Modelfile   (after converting the merged model to GGUF)
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.cpu.yml up -d api prometheus grafana
+services:
+  api:
+    environment:
+      T2S_BACKEND_URL: http://host.docker.internal:11434/v1
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    depends_on: !reset {}

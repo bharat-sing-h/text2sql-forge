@@ -1,0 +1,6 @@
+apiVersion: v2
+name: text2sql
+description: Text-to-SQL service - vLLM model server (GPU) + API gateway (CPU, autoscaled)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
