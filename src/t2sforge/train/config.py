@@ -39,8 +39,8 @@ class TrainConfig(BaseModel):
     learning_rate: float = 2e-4
     num_epochs: float = 2.0
     max_steps: int = -1
-    per_device_batch_size: int = 4
-    gradient_accumulation_steps: int = 4
+    per_device_batch_size: int = 1
+    gradient_accumulation_steps: int = 16
     warmup_ratio: float = 0.03
     lr_scheduler: str = "cosine"
     weight_decay: float = 0.0

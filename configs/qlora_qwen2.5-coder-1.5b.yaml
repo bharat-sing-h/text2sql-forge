@@ -1,5 +1,7 @@
 # QLoRA SFT for text-to-SQL. Fits a single free 16 GB T4 (Kaggle / Colab).
 # Effective batch = per_device_batch_size * gradient_accumulation_steps = 16.
+# Batch 1 is deliberate: Qwen's ~152k-token vocabulary makes the logits tensor
+# (batch x seq_len x vocab, fp32) ~4.6 GB at batch 4 / 2048 tokens, which OOMs a T4.
 base_model: Qwen/Qwen2.5-Coder-1.5B-Instruct
 train_file: data/sft/train.jsonl
 val_file: data/sft/val.jsonl
@@ -17,8 +19,8 @@ lora:
 
 learning_rate: 2.0e-4
 num_epochs: 2
-per_device_batch_size: 4
-gradient_accumulation_steps: 4
+per_device_batch_size: 1
+gradient_accumulation_steps: 16
 warmup_ratio: 0.03
 lr_scheduler: cosine
 gradient_checkpointing: true

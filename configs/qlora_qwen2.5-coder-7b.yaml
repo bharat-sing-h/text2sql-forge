@@ -8,5 +8,5 @@ max_seq_len: 2048
 lora: {r: 32, alpha: 64, dropout: 0.05}
 learning_rate: 1.0e-4
 num_epochs: 2
-per_device_batch_size: 2
-gradient_accumulation_steps: 8
+per_device_batch_size: 1     # large vocab -> large logits; see the 1.5B config
+gradient_accumulation_steps: 16

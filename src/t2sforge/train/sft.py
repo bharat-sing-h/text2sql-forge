@@ -121,10 +121,14 @@ def apply_lora(model: Any, cfg: TrainConfig) -> Any:
 
     if cfg.quantization == "4bit":
         model = prepare_model_for_kbit_training(
-            model, use_gradient_checkpointing=cfg.gradient_checkpointing
+            model,
+            use_gradient_checkpointing=cfg.gradient_checkpointing,
+            # explicit non-reentrant checkpointing: required by newer PyTorch, and it works
+            # with frozen (quantised) base weights
+            gradient_checkpointing_kwargs={"use_reentrant": False},
         )
     elif cfg.gradient_checkpointing:
-        model.gradient_checkpointing_enable()
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
         model.enable_input_require_grads()
     lora = LoraConfig(
         r=cfg.lora.r,
