@@ -22,9 +22,33 @@ from pathlib import Path
 from t2sforge.data.examples import Example, db_path
 from t2sforge.sql.execute import run_query
 
-FIRST = ["Asha", "Ben", "Chen", "Dana", "Eli", "Farah", "Gita", "Hugo", "Ines", "Jai", "Kofi",
-         "Lena", "Mateo", "Nia", "Omar", "Priya", "Quinn", "Ravi", "Sara", "Tomas", "Uma", "Viktor",
-         "Wen", "Yusuf", "Zoe"]
+FIRST = [
+    "Asha",
+    "Ben",
+    "Chen",
+    "Dana",
+    "Eli",
+    "Farah",
+    "Gita",
+    "Hugo",
+    "Ines",
+    "Jai",
+    "Kofi",
+    "Lena",
+    "Mateo",
+    "Nia",
+    "Omar",
+    "Priya",
+    "Quinn",
+    "Ravi",
+    "Sara",
+    "Tomas",
+    "Uma",
+    "Viktor",
+    "Wen",
+    "Yusuf",
+    "Zoe",
+]
 LAST = ["Rao", "Khan", "Smith", "Garcia", "Ito", "Okafor", "Novak", "Silva", "Meyer", "Haddad"]
 CITIES = ["Delhi", "Pune", "Mumbai", "Chennai", "Berlin", "Lagos", "Austin", "Osaka", "Lyon"]
 
@@ -71,24 +95,44 @@ def _unique(rng: random.Random, n: int, factory: Callable[[random.Random], str])
 
 # --- domains ------------------------------------------------------------------------------
 
+
 def _populate_retail(conn: sqlite3.Connection, rng: random.Random) -> None:
     names = _unique(rng, 30, _person)
     for i, name in enumerate(names, 1):
-        conn.execute("INSERT INTO customers VALUES (?, ?, ?, ?)",
-                     (i, name, rng.choice(CITIES[:6]), rng.randint(2018, 2025)))
-    catalog = [("Laptop", "electronics"), ("Headphones", "electronics"), ("Monitor", "electronics"),
-               ("Desk", "furniture"), ("Chair", "furniture"), ("Bookshelf", "furniture"),
-               ("Notebook", "stationery"), ("Pen Set", "stationery"), ("Backpack", "accessories"),
-               ("Water Bottle", "accessories"), ("Keyboard", "electronics"), ("Lamp", "furniture")]
+        conn.execute(
+            "INSERT INTO customers VALUES (?, ?, ?, ?)",
+            (i, name, rng.choice(CITIES[:6]), rng.randint(2018, 2025)),
+        )
+    catalog = [
+        ("Laptop", "electronics"),
+        ("Headphones", "electronics"),
+        ("Monitor", "electronics"),
+        ("Desk", "furniture"),
+        ("Chair", "furniture"),
+        ("Bookshelf", "furniture"),
+        ("Notebook", "stationery"),
+        ("Pen Set", "stationery"),
+        ("Backpack", "accessories"),
+        ("Water Bottle", "accessories"),
+        ("Keyboard", "electronics"),
+        ("Lamp", "furniture"),
+    ]
     for i, (name, category) in enumerate(catalog, 1):
-        conn.execute("INSERT INTO products VALUES (?, ?, ?, ?)",
-                     (i, name, category, round(rng.uniform(5, 1500), 2)))
+        conn.execute(
+            "INSERT INTO products VALUES (?, ?, ?, ?)",
+            (i, name, category, round(rng.uniform(5, 1500), 2)),
+        )
     for i in range(1, 121):
         conn.execute(
             "INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?)",
-            (i, rng.randint(1, len(names)), rng.randint(1, len(catalog)), rng.randint(1, 5),
-             f"2024-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}",
-             rng.choice(["paid", "paid", "paid", "shipped", "refunded", "pending"])),
+            (
+                i,
+                rng.randint(1, len(names)),
+                rng.randint(1, len(catalog)),
+                rng.randint(1, 5),
+                f"2024-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}",
+                rng.choice(["paid", "paid", "paid", "shipped", "refunded", "pending"]),
+            ),
         )
 
 
@@ -105,30 +149,51 @@ RETAIL = Domain(
                          quantity INTEGER, order_date TEXT, status TEXT);
     """,
     tables={
-        "customers": TableSpec("customers", "customer", "customers", "name",
-                               {"signup_year": "signup year"}, {"city": "city"}),
-        "products": TableSpec("products", "product", "products", "name",
-                              {"price": "price"}, {"category": "category"}),
-        "orders": TableSpec("orders", "order", "orders", "id",
-                            {"quantity": "quantity"}, {"status": "status"}),
+        "customers": TableSpec(
+            "customers",
+            "customer",
+            "customers",
+            "name",
+            {"signup_year": "signup year"},
+            {"city": "city"},
+        ),
+        "products": TableSpec(
+            "products", "product", "products", "name", {"price": "price"}, {"category": "category"}
+        ),
+        "orders": TableSpec(
+            "orders", "order", "orders", "id", {"quantity": "quantity"}, {"status": "status"}
+        ),
     },
-    joins=[JoinSpec("orders", "customer_id", "customers", "placed by"),
-           JoinSpec("orders", "product_id", "products", "for")],
+    joins=[
+        JoinSpec("orders", "customer_id", "customers", "placed by"),
+        JoinSpec("orders", "product_id", "products", "for"),
+    ],
     populate=_populate_retail,
 )
 
 
 def _populate_hr(conn: sqlite3.Connection, rng: random.Random) -> None:
-    depts = [("Engineering", "Bengaluru"), ("Sales", "Mumbai"), ("Finance", "Delhi"),
-             ("Marketing", "Pune"), ("Support", "Hyderabad")]
+    depts = [
+        ("Engineering", "Bengaluru"),
+        ("Sales", "Mumbai"),
+        ("Finance", "Delhi"),
+        ("Marketing", "Pune"),
+        ("Support", "Hyderabad"),
+    ]
     for i, (name, loc) in enumerate(depts, 1):
         conn.execute("INSERT INTO departments VALUES (?, ?, ?)", (i, name, loc))
     titles = ["Engineer", "Senior Engineer", "Manager", "Analyst", "Associate", "Director"]
     for i, name in enumerate(_unique(rng, 40, _person), 1):
         conn.execute(
             "INSERT INTO employees VALUES (?, ?, ?, ?, ?, ?)",
-            (i, name, rng.randint(1, len(depts)), rng.choice(titles),
-             rng.randint(35_000, 220_000), rng.randint(2010, 2025)),
+            (
+                i,
+                name,
+                rng.randint(1, len(depts)),
+                rng.choice(titles),
+                rng.randint(35_000, 220_000),
+                rng.randint(2010, 2025),
+            ),
         )
 
 
@@ -141,10 +206,17 @@ HR = Domain(
                             title TEXT, salary INTEGER, hire_year INTEGER);
     """,
     tables={
-        "departments": TableSpec("departments", "department", "departments", "name",
-                                 {}, {"location": "location"}),
-        "employees": TableSpec("employees", "employee", "employees", "name",
-                               {"salary": "salary", "hire_year": "hire year"}, {"title": "title"}),
+        "departments": TableSpec(
+            "departments", "department", "departments", "name", {}, {"location": "location"}
+        ),
+        "employees": TableSpec(
+            "employees",
+            "employee",
+            "employees",
+            "name",
+            {"salary": "salary", "hire_year": "hire year"},
+            {"title": "title"},
+        ),
     },
     joins=[JoinSpec("employees", "department_id", "departments", "working in")],
     populate=_populate_hr,
@@ -155,23 +227,50 @@ def _populate_library(conn: sqlite3.Connection, rng: random.Random) -> None:
     countries = ["India", "Nigeria", "Japan", "Brazil", "France", "Canada"]
     authors = _unique(rng, 15, _person)
     for i, name in enumerate(authors, 1):
-        conn.execute("INSERT INTO authors VALUES (?, ?, ?, ?)",
-                     (i, name, rng.choice(countries), rng.randint(1930, 1995)))
-    words = ["River", "Silent", "Garden", "Empire", "Glass", "Night", "Paper", "Stone", "Echo",
-             "Winter", "Harbor", "Signal", "Orchard", "Lantern"]
+        conn.execute(
+            "INSERT INTO authors VALUES (?, ?, ?, ?)",
+            (i, name, rng.choice(countries), rng.randint(1930, 1995)),
+        )
+    words = [
+        "River",
+        "Silent",
+        "Garden",
+        "Empire",
+        "Glass",
+        "Night",
+        "Paper",
+        "Stone",
+        "Echo",
+        "Winter",
+        "Harbor",
+        "Signal",
+        "Orchard",
+        "Lantern",
+    ]
     titles = _unique(rng, 45, lambda r: f"The {r.choice(words)} {r.choice(words)}")
     for i, title in enumerate(titles, 1):
         conn.execute(
             "INSERT INTO books VALUES (?, ?, ?, ?, ?, ?)",
-            (i, title, rng.randint(1, len(authors)),
-             rng.choice(["fiction", "history", "science", "poetry", "mystery"]),
-             rng.randint(1960, 2024), rng.randint(90, 900)),
+            (
+                i,
+                title,
+                rng.randint(1, len(authors)),
+                rng.choice(["fiction", "history", "science", "poetry", "mystery"]),
+                rng.randint(1960, 2024),
+                rng.randint(90, 900),
+            ),
         )
     for i in range(1, 91):
-        conn.execute("INSERT INTO loans VALUES (?, ?, ?, ?, ?)",
-                     (i, rng.randint(1, len(titles)), _person(rng),
-                      f"2024-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}",
-                      rng.choice([0, 1, 1])))
+        conn.execute(
+            "INSERT INTO loans VALUES (?, ?, ?, ?, ?)",
+            (
+                i,
+                rng.randint(1, len(titles)),
+                _person(rng),
+                f"2024-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}",
+                rng.choice([0, 1, 1]),
+            ),
+        )
 
 
 LIBRARY = Domain(
@@ -186,11 +285,22 @@ LIBRARY = Domain(
                         member_name TEXT, loan_date TEXT, returned INTEGER);
     """,
     tables={
-        "authors": TableSpec("authors", "author", "authors", "name",
-                             {"birth_year": "birth year"}, {"country": "country"}),
-        "books": TableSpec("books", "book", "books", "title",
-                           {"pages": "page count", "published_year": "publication year"},
-                           {"genre": "genre"}),
+        "authors": TableSpec(
+            "authors",
+            "author",
+            "authors",
+            "name",
+            {"birth_year": "birth year"},
+            {"country": "country"},
+        ),
+        "books": TableSpec(
+            "books",
+            "book",
+            "books",
+            "title",
+            {"pages": "page count", "published_year": "publication year"},
+            {"genre": "genre"},
+        ),
     },
     joins=[JoinSpec("books", "author_id", "authors", "written by")],
     populate=_populate_library,
@@ -206,8 +316,9 @@ Template = Callable[[Domain, sqlite3.Connection, random.Random], Pair | None]
 
 
 def _pick_value(conn: sqlite3.Connection, rng: random.Random, table: str, col: str) -> object:
-    values = [r[0] for r in conn.execute(
-        f"SELECT DISTINCT {col} FROM {table} WHERE {col} IS NOT NULL")]
+    values = [
+        r[0] for r in conn.execute(f"SELECT DISTINCT {col} FROM {table} WHERE {col} IS NOT NULL")
+    ]
     return rng.choice(values)
 
 
@@ -223,8 +334,13 @@ def _table(domain: Domain, rng: random.Random, *, need: str | None = None) -> Ta
 def t_count_all(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair | None:
     t = _table(d, rng)
     assert t is not None
-    q = rng.choice([f"How many {t.plural} are there?", f"Count the {t.plural}.",
-                    f"What is the total number of {t.plural}?"])
+    q = rng.choice(
+        [
+            f"How many {t.plural} are there?",
+            f"Count the {t.plural}.",
+            f"What is the total number of {t.plural}?",
+        ]
+    )
     return q, f"SELECT COUNT(*) FROM {t.name}", "easy"
 
 
@@ -234,8 +350,12 @@ def t_filter_cat(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pai
         return None
     col, phrase = rng.choice(list(t.categorical.items()))
     v = _pick_value(conn, rng, t.name, col)
-    q = rng.choice([f"List the {t.label} of {t.plural} whose {phrase} is {v}.",
-                    f"Show the {t.label} of every {t.singular} with {phrase} {v}."])
+    q = rng.choice(
+        [
+            f"List the {t.label} of {t.plural} whose {phrase} is {v}.",
+            f"Show the {t.label} of every {t.singular} with {phrase} {v}.",
+        ]
+    )
     return q, f"SELECT {t.label} FROM {t.name} WHERE {col} = {_lit(v)}", "easy"
 
 
@@ -246,8 +366,11 @@ def t_filter_num(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pai
     col, phrase = rng.choice(list(t.numeric.items()))
     v = _pick_value(conn, rng, t.name, col)
     op, word = rng.choice([(">", "greater than"), ("<", "less than"), (">=", "at least")])
-    return (f"Which {t.plural} have a {phrase} {word} {v}? Give their {t.label}.",
-            f"SELECT {t.label} FROM {t.name} WHERE {col} {op} {_lit(v)}", "easy")
+    return (
+        f"Which {t.plural} have a {phrase} {word} {v}? Give their {t.label}.",
+        f"SELECT {t.label} FROM {t.name} WHERE {col} {op} {_lit(v)}",
+        "easy",
+    )
 
 
 def t_aggregate(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair | None:
@@ -255,10 +378,14 @@ def t_aggregate(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair
     if t is None:
         return None
     col, phrase = rng.choice(list(t.numeric.items()))
-    fn, word = rng.choice([("AVG", "average"), ("MAX", "highest"), ("MIN", "lowest"),
-                           ("SUM", "total")])
-    return (f"What is the {word} {phrase} across all {t.plural}?",
-            f"SELECT {fn}({col}) FROM {t.name}", "easy")
+    fn, word = rng.choice(
+        [("AVG", "average"), ("MAX", "highest"), ("MIN", "lowest"), ("SUM", "total")]
+    )
+    return (
+        f"What is the {word} {phrase} across all {t.plural}?",
+        f"SELECT {fn}({col}) FROM {t.name}",
+        "easy",
+    )
 
 
 def t_group_count(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair | None:
@@ -266,8 +393,11 @@ def t_group_count(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pa
     if t is None:
         return None
     col, phrase = rng.choice(list(t.categorical.items()))
-    return (f"For each {phrase}, how many {t.plural} are there?",
-            f"SELECT {col}, COUNT(*) FROM {t.name} GROUP BY {col}", "medium")
+    return (
+        f"For each {phrase}, how many {t.plural} are there?",
+        f"SELECT {col}, COUNT(*) FROM {t.name} GROUP BY {col}",
+        "medium",
+    )
 
 
 def t_top_k(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair | None:
@@ -276,13 +406,18 @@ def t_top_k(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair | N
         return None
     col, phrase = rng.choice(list(t.numeric.items()))
     # top-k only on (near-)unique columns, otherwise ties make the gold answer ambiguous
-    distinct, total = conn.execute(f"SELECT COUNT(DISTINCT {col}), COUNT(*) FROM {t.name}").fetchone()
+    distinct, total = conn.execute(
+        f"SELECT COUNT(DISTINCT {col}), COUNT(*) FROM {t.name}"
+    ).fetchone()
     if distinct != total:
         return None
     k = rng.randint(2, 5)
     direction, word = rng.choice([("DESC", "highest"), ("ASC", "lowest")])
-    return (f"What are the {t.label}s of the {k} {t.plural} with the {word} {phrase}?",
-            f"SELECT {t.label} FROM {t.name} ORDER BY {col} {direction} LIMIT {k}", "medium")
+    return (
+        f"What are the {t.label}s of the {k} {t.plural} with the {word} {phrase}?",
+        f"SELECT {t.label} FROM {t.name} ORDER BY {col} {direction} LIMIT {k}",
+        "medium",
+    )
 
 
 def t_having(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair | None:
@@ -290,14 +425,16 @@ def t_having(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair | 
     if t is None:
         return None
     col, phrase = rng.choice(list(t.categorical.items()))
-    counts = sorted(r[0] for r in conn.execute(
-        f"SELECT COUNT(*) FROM {t.name} GROUP BY {col}"))
+    counts = sorted(r[0] for r in conn.execute(f"SELECT COUNT(*) FROM {t.name} GROUP BY {col}"))
     k = counts[len(counts) // 2] - 1  # median-ish threshold so the answer is non-trivial
     # skip degenerate questions: "more than 0" or a threshold that keeps every group
     if k < 1 or all(c > k for c in counts):
         return None
-    return (f"Which {phrase} values have more than {k} {t.plural}?",
-            f"SELECT {col} FROM {t.name} GROUP BY {col} HAVING COUNT(*) > {k}", "hard")
+    return (
+        f"Which {phrase} values have more than {k} {t.plural}?",
+        f"SELECT {col} FROM {t.name} GROUP BY {col} HAVING COUNT(*) > {k}",
+        "hard",
+    )
 
 
 def t_above_average(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair | None:
@@ -305,9 +442,11 @@ def t_above_average(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> 
     if t is None:
         return None
     col, phrase = rng.choice(list(t.numeric.items()))
-    return (f"Which {t.plural} have a {phrase} above the average? List their {t.label}.",
-            f"SELECT {t.label} FROM {t.name} WHERE {col} > (SELECT AVG({col}) FROM {t.name})",
-            "hard")
+    return (
+        f"Which {t.plural} have a {phrase} above the average? List their {t.label}.",
+        f"SELECT {t.label} FROM {t.name} WHERE {col} > (SELECT AVG({col}) FROM {t.name})",
+        "hard",
+    )
 
 
 def t_join_filter(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pair | None:
@@ -338,8 +477,18 @@ def t_join_group(d: Domain, conn: sqlite3.Connection, rng: random.Random) -> Pai
     )
 
 
-TEMPLATES: list[Template] = [t_count_all, t_filter_cat, t_filter_num, t_aggregate, t_group_count,
-                             t_top_k, t_having, t_above_average, t_join_filter, t_join_group]
+TEMPLATES: list[Template] = [
+    t_count_all,
+    t_filter_cat,
+    t_filter_num,
+    t_aggregate,
+    t_group_count,
+    t_top_k,
+    t_having,
+    t_above_average,
+    t_join_filter,
+    t_join_group,
+]
 
 
 def create_database(domain: Domain, path: Path, seed: int) -> None:
@@ -356,7 +505,11 @@ def create_database(domain: Domain, path: Path, seed: int) -> None:
 
 
 def generate(
-    out_root: str | Path, *, instances_per_domain: int = 4, per_db: int = 40, seed: int = 0,
+    out_root: str | Path,
+    *,
+    instances_per_domain: int = 4,
+    per_db: int = 40,
+    seed: int = 0,
     domains: list[str] | None = None,
 ) -> list[Example]:
     """Create databases under ``out_root`` and return verified examples."""
@@ -382,10 +535,16 @@ def generate(
                     if not result.ok or not result.rows or result.rows == [(None,)]:
                         continue  # keep only verified, non-empty answers
                     seen.add(sql)
-                    examples.append(Example(
-                        id=f"synth-{db_id}-{len(seen):03d}", db_id=db_id, question=question,
-                        sql=sql, difficulty=difficulty, source="synthetic",
-                    ))
+                    examples.append(
+                        Example(
+                            id=f"synth-{db_id}-{len(seen):03d}",
+                            db_id=db_id,
+                            question=question,
+                            sql=sql,
+                            difficulty=difficulty,
+                            source="synthetic",
+                        )
+                    )
             finally:
                 conn.close()
     return examples

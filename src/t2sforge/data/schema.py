@@ -83,9 +83,7 @@ def describe_database(path: str | Path, *, sample_values: int = 3) -> list[Table
                         ]
                     except sqlite3.Error:
                         examples = []
-                columns.append(
-                    Column(name, col_type or "", bool(pk), fks.get(name), examples)
-                )
+                columns.append(Column(name, col_type or "", bool(pk), fks.get(name), examples))
             tables.append(Table(table, columns))
         return tables
     finally:

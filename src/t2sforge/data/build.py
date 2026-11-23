@@ -47,7 +47,9 @@ def check_leakage(train: Iterable[Example], evaluation: Iterable[Example]) -> Le
     evaluation = list(evaluation)
     shared = sorted({e.db_id for e in train} & {e.db_id for e in evaluation})
     norm = {(" ".join(e.question.lower().split()), e.db_id) for e in train}
-    dupes = sorted(e.id for e in evaluation if (" ".join(e.question.lower().split()), e.db_id) in norm)
+    dupes = sorted(
+        e.id for e in evaluation if (" ".join(e.question.lower().split()), e.db_id) in norm
+    )
     return LeakageReport(shared, dupes)
 
 
