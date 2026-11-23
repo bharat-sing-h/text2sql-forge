@@ -39,6 +39,7 @@ dev = [
   "mypy>=1.10",
   "types-PyYAML",
   "fastapi>=0.110",
+  "uvicorn>=0.29",
   "prometheus-client>=0.20",
 ]
 
