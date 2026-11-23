@@ -1,0 +1,21 @@
+# In-process evaluation with transformers (no server) - what the Kaggle/Colab notebook uses.
+#   T2S_MODEL=Qwen/Qwen2.5-Coder-1.5B-Instruct T2S_ADAPTER=outputs/.../adapter \
+#     llmverdict run configs/eval_local.yaml --label finetuned
+model:
+  provider: function
+  target: t2sforge.infer:answer
+  model: ${RUN_NAME:-local}
+
+plugins: [t2sforge.eval.llmverdict_plugin]
+
+tasks:
+  - path: ../data/eval/${EVAL_SET:-spider}_eval.jsonl
+    name: ${EVAL_SET:-spider}
+    limit: ${LIMIT:-1034}
+    scorers:
+      - {type: execution_accuracy, options: {db_root: "${DB_ROOT:-data/spider/database}"}}
+      - sql_valid
+
+execution:
+  concurrency: 1        # one GPU, sequential generate() calls
+  cache: false
