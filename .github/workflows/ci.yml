@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # llm-verdict powers evaluation; jobs degrade gracefully if it can't be installed
+  LLMVERDICT: "llmverdict @ git+https://github.com/bharat-sing-h/llm-verdict"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests loadtest
+      - run: ruff format --check src tests loadtest
+      - run: mypy
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "${{ matrix.python-version }}", cache: pip}
+      - run: pip install -e ".[dev]"
+      - name: Install llm-verdict (integration tests)
+        run: pip install "$LLMVERDICT" || echo "::warning::llm-verdict not installable (private repo?) - integration tests will be skipped"
+      - run: pytest --cov --cov-report=term-missing
+
+  # Real training code path on CPU: tiny random model, QLoRA-style LoRA, merge, generate,
+  # then llm-verdict evaluation of base vs fine-tuned. Proves the pipeline, not model quality.
+  train-smoke:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -e ".[dev]" transformers peft accelerate
+      - run: pytest tests/test_train.py -v
+      - name: Install llm-verdict
+        id: lv
+        run: pip install "$LLMVERDICT" && echo "ok=true" >> "$GITHUB_OUTPUT" || echo "::warning::llm-verdict unavailable - skipping eval half of the smoke run"
+      - name: End-to-end smoke pipeline
+        if: steps.lv.outputs.ok == 'true'
+        run: make smoke
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint deploy/helm/text2sql
+      - run: helm template t2s deploy/helm/text2sql > /tmp/rendered.yaml && grep -c "^kind:" /tmp/rendered.yaml
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f deploy/docker-compose.yml config -q
+      - run: docker build -f deploy/docker/Dockerfile.api -t t2s-api:ci .
+      - name: Container starts and serves /healthz
+        run: |
+          docker run -d --name api -p 8080:8080 t2s-api:ci
+          for i in $(seq 1 30); do curl -fsS localhost:8080/healthz && exit 0; sleep 1; done
+          docker logs api; exit 1
