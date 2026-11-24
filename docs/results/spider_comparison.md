@@ -2,6 +2,7 @@
 
 Produced by `llmverdict compare base__spider finetuned__spider` at the end of
 [`notebooks/train_and_evaluate.ipynb`](../../notebooks/train_and_evaluate.ipynb), run on a Kaggle Tesla T4.
+The executed notebook, with all outputs, is public: <https://www.kaggle.com/code/bharatsingh0604/notebook1721a86e74>
 
 **Baseline:** `base__spider` (Qwen/Qwen2.5-Coder-1.5B-Instruct, zero-shot)
 **Candidate:** `finetuned__spider` (same model + the QLoRA adapter trained by this repo)

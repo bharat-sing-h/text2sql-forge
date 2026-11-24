@@ -1,6 +1,7 @@
 # text2sql-forge
 
 [![CI](https://github.com/bharat-sing-h/text2sql-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/bharat-sing-h/text2sql-forge/actions/workflows/ci.yml)
+[![Kaggle run](https://img.shields.io/badge/Kaggle-see%20the%20T4%20run-20BEFF?logo=kaggle&logoColor=white)](https://www.kaggle.com/code/bharatsingh0604/notebook1721a86e74)
 ![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue)
 ![mypy](https://img.shields.io/badge/mypy-strict-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -35,6 +36,8 @@
 | **Difference** | **+7.9 pp** [+5.1, +10.6], exact McNemar **p < 0.0001** | +0.0 pp |
 
 Both models answered the *same* questions, so the comparison is paired. Run with [`notebooks/train_and_evaluate.ipynb`](notebooks/train_and_evaluate.ipynb) on a **free Kaggle T4**: training took **51 minutes** (one epoch over 3,000 examples sampled from Spider train plus synthetic data). Full report: [docs/results/spider_comparison.md](docs/results/spider_comparison.md).
+
+**See the actual run:** [the public Kaggle notebook](https://www.kaggle.com/code/bharatsingh0604/notebook1721a86e74) shows every cell output: data card, baseline evaluation, training log, fine-tuned evaluation and the comparison table.
 
 Largest per-database changes (all dev databases are unseen during training):
 
