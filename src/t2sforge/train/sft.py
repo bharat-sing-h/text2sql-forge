@@ -53,8 +53,11 @@ def resolve_precision(cfg: TrainConfig) -> str:
     if cfg.precision != "auto":
         return cfg.precision
     if torch.cuda.is_available():
-        # T4/V100 have no bf16 support; Ampere+ do and bf16 is more stable than fp16
-        return "bf16" if torch.cuda.is_bf16_supported() else "fp16"
+        # bf16 only where the hardware has it (Ampere, compute capability 8.0+). Don't use
+        # torch.cuda.is_bf16_supported(): it defaults to including_emulation=True and says
+        # yes on a T4, where emulated bf16 made training ~4-5x slower than fp16.
+        major, _minor = torch.cuda.get_device_capability()
+        return "bf16" if major >= 8 else "fp16"
     return "fp32"
 
 

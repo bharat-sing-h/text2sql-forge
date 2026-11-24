@@ -48,6 +48,30 @@ def test_subsample_is_deterministic_and_bounded() -> None:
     assert subsample(items, 500, seed=1) is items
 
 
+@pytest.mark.parametrize(
+    ("cuda", "capability", "expected"),
+    [
+        (True, (7, 5), "fp16"),
+        (True, (7, 0), "fp16"),
+        (True, (8, 0), "bf16"),
+        (True, (8, 9), "bf16"),
+        (False, (0, 0), "fp32"),
+    ],
+)
+def test_resolve_precision_uses_native_bf16_only(
+    monkeypatch: pytest.MonkeyPatch, cuda: bool, capability: tuple[int, int], expected: str
+) -> None:
+    torch = pytest.importorskip("torch")
+    from t2sforge.train.sft import resolve_precision
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda)
+    monkeypatch.setattr(torch.cuda, "get_device_capability", lambda *a: capability)
+    # what PyTorch reports on a T4 by default (emulated bf16 counts as "supported")
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda *a, **k: True)
+    assert resolve_precision(TrainConfig()) == expected
+    assert resolve_precision(TrainConfig(precision="fp32")) == "fp32"
+
+
 def test_pad_batch() -> None:
     batch = pad_batch([TokenizedExample([1, 2, 3], [-100, 2, 3]), TokenizedExample([4], [4])], 0)
     assert batch["input_ids"] == [[1, 2, 3], [4, 0, 0]]
