@@ -37,7 +37,16 @@ A 1.5B model fine-tuned for one task can run on a single cheap GPU, or on a CPU 
 - **Truncation detection:** the gateway fetches `limit + 1` rows. An earlier version fetched exactly `limit`, so it could never tell callers their results were cut off. A test caught it.
 - **Kubernetes specifics:** vLLM gets a startup probe (loading a model takes minutes), a `Recreate` rollout (one GPU per pod), `/dev/shm` as memory, and a persistent Hugging Face cache. The API runs as non-root with a read-only root filesystem and read-only database mounts, scales with an HPA, and its readiness depends on the model server.
 
-## 6. Known limitations and next steps
+## 6. Running on a free T4: four problems found by the real run
+
+None of these showed up in CPU tests. All are fixed in the repo:
+
+1. **Out of memory on the first step.** Qwen's ~152k-token vocabulary makes the fp32 logits tensor (batch × tokens × vocab) about 4.6 GB at batch 4 and 2,048 tokens. Fix: batch 1 with 16-step gradient accumulation (same effective batch).
+2. **Training 3.5× too slow.** `torch.cuda.is_bf16_supported()` defaults to `including_emulation=True` and returns True on a T4, so training ran in *emulated* bf16 (143 s per optimizer step). Fix: choose bf16 only on compute capability ≥ 8.0; fp16 on T4 brought it to 40 s per step.
+3. **Over Kaggle's 12-hour limit.** Two epochs over ~9.7k examples projected ~31 hours. Fix: one epoch over a seeded 3,000-example subset, a small validation set, and no fp32 upcast of the output layer. That took 51 minutes and still gained +7.9 pp.
+4. **Evaluation failed on every question.** Kaggle preinstalls torchao 0.10, and recent peft refuses to apply a LoRA adapter to a 16-bit model when an old torchao is present. Training on the 4-bit model takes a different code path, so only evaluation broke. Fix: uninstall torchao in the notebook. This also showed that the function provider should fail fast when model loading fails, instead of retrying per sample.
+
+## 7. Known limitations and next steps
 
 - Only SQLite is supported. Other dialects would need dialect-aware guards (sqlglot supports them) and a sandbox per engine.
 - Single-turn questions only. Conversational follow-ups would need the previous SQL in context.

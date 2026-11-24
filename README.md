@@ -24,6 +24,32 @@
 | **Serving** | vLLM with prefix caching, and a FastAPI gateway that adds a SQL guard, sandboxed execution, one self-correction round, input validation, and Prometheus metrics |
 | **Ops** | Docker Compose stack (vLLM, API, Prometheus, Grafana dashboard), a Helm chart (GPU model server plus an autoscaled API), a Locust load test, a CPU fallback through Ollama/GGUF, and CI that runs the real training code on a tiny model |
 
+## Results
+
+**Qwen2.5-Coder-1.5B-Instruct on the full Spider dev set (1,034 questions, 20 databases never seen in training)**, measured with execution accuracy: the predicted and gold SQL are both run, and the results compared.
+
+| Model | Execution accuracy [95% CI] | Valid SQL |
+|---|---|---|
+| Base model (zero-shot, same prompt) | 57.0% [53.9, 59.9] | 100% |
+| **QLoRA fine-tuned (this repo)** | **64.9%** [61.9, 67.7] | 100% |
+| **Difference** | **+7.9 pp** [+5.1, +10.6], exact McNemar **p < 0.0001** | +0.0 pp |
+
+Both models answered the *same* questions, so the comparison is paired. Run with [`notebooks/train_and_evaluate.ipynb`](notebooks/train_and_evaluate.ipynb) on a **free Kaggle T4**: training took **51 minutes** (one epoch over 3,000 examples sampled from Spider train plus synthetic data). Full report: [docs/results/spider_comparison.md](docs/results/spider_comparison.md).
+
+Largest per-database changes (all dev databases are unseen during training):
+
+| Database | Questions | Base | Fine-tuned | Δ |
+|---|---|---|---|---|
+| `voter_1` | 15 | 46.7% | 73.3% | +26.7 pp |
+| `tvshow` | 62 | 51.6% | 75.8% | +24.2 pp |
+| `concert_singer` | 45 | 62.2% | 80.0% | +17.8 pp |
+| `wta_1` | 62 | 46.8% | 64.5% | +17.7 pp |
+| `student_transcripts_tracking` | 78 | 39.7% | 56.4% | +16.7 pp |
+| `museum_visit` | 18 | 88.9% | 83.3% | −5.6 pp |
+| `poker_player` | 40 | 80.0% | 65.0% | −15.0 pp |
+
+The gain isn't uniform: 66 questions the base model answered correctly became wrong, and `poker_player` regressed. Listing regressions next to the headline number is the point of using a paired comparison rather than two separate accuracy numbers. More training data and epochs, and self-consistency decoding, are the obvious next experiments (see [design notes](docs/design.md)).
+
 ## Quickstart (CPU, about 1 minute, no downloads)
 
 ```bash
