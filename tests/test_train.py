@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from t2sforge.train.config import TrainConfig, load_train_config
-from t2sforge.train.sft import compat_training_kwargs
+from t2sforge.train.sft import compat_training_kwargs, subsample
 from t2sforge.train.tokenize import (
     IGNORE_INDEX,
     TokenizedExample,
@@ -35,6 +35,17 @@ def test_compat_training_kwargs() -> None:
     assert v4 == {"warmup_ratio": 0.03, "group_by_length": True}
     v5 = compat_training_kwargs({"warmup_steps", "train_sampling_strategy"}, 0.03)
     assert v5 == {"warmup_steps": 0.03, "train_sampling_strategy": "group_by_length"}
+
+
+def test_subsample_is_deterministic_and_bounded() -> None:
+    items = [TokenizedExample([i], [i]) for i in range(100)]
+    a, b = subsample(items, 10, seed=1), subsample(items, 10, seed=1)
+    assert a == b
+    assert len(a) == 10
+    assert len({x.input_ids[0] for x in a}) == 10
+    assert subsample(items, 10, seed=2) != a
+    assert subsample(items, None, seed=1) is items
+    assert subsample(items, 500, seed=1) is items
 
 
 def test_pad_batch() -> None:

@@ -8,6 +8,7 @@ val_file: data/sft/val.jsonl
 output_dir: outputs/qwen2.5-coder-1.5b-sql
 
 quantization: 4bit        # NF4 base weights + double quantisation
+upcast_non_quantized: false   # keep the 152k-vocab output layer in fp16: several x faster on T4
 precision: auto           # bf16 on Ampere+, fp16 on T4/V100
 max_seq_len: 2048         # Spider schemas fit; longer examples are dropped (logged), never truncated
 
@@ -18,16 +19,21 @@ lora:
   target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
 
 learning_rate: 2.0e-4
-num_epochs: 2
+# Sized for Kaggle's 12-hour session limit on one T4: one pass over a seeded 3,000-example
+# subset (~188 optimizer steps). The first attempt (2 epochs x ~9.7k examples, fp32 output
+# layer) projected ~31 hours. Raise these on a faster GPU (A10G/L4/A100).
+num_epochs: 1
+max_train_samples: 3000
+max_val_samples: 200          # validation runs every eval_steps; keep it cheap
 per_device_batch_size: 1
 gradient_accumulation_steps: 16
 warmup_ratio: 0.03
 lr_scheduler: cosine
 gradient_checkpointing: true
 
-logging_steps: 10
-eval_steps: 200
-save_steps: 200
+logging_steps: 5
+eval_steps: 50
+save_steps: 50
 save_total_limit: 2
 seed: 42
 report_to: []             # e.g. [mlflow] or [wandb]

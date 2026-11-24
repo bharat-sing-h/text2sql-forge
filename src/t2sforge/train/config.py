@@ -37,8 +37,16 @@ class TrainConfig(BaseModel):
     lora: LoraSettings = Field(default_factory=LoraSettings)
 
     learning_rate: float = 2e-4
-    num_epochs: float = 2.0
+    num_epochs: float = 1.0
     max_steps: int = -1
+    #: random (seeded) subset of training / validation examples; None = use all.
+    #: Validation runs several times during training, so it's kept small by default.
+    max_train_samples: int | None = None
+    max_val_samples: int | None = 200
+    #: QLoRA's usual prep casts every non-quantised weight (incl. the 152k-row output layer)
+    #: to fp32. On GPUs without fast fp32 (T4) that makes each step several times slower;
+    #: leaving them in fp16/bf16 is the common speed/stability trade-off.
+    upcast_non_quantized: bool = False
     per_device_batch_size: int = 1
     gradient_accumulation_steps: int = 16
     warmup_ratio: float = 0.03

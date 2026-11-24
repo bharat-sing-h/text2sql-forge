@@ -72,6 +72,17 @@ class _ListDataset:
         return {"input_ids": item.input_ids, "labels": item.labels}
 
 
+def subsample(
+    items: list[TokenizedExample], limit: int | None, seed: int
+) -> list[TokenizedExample]:
+    """Deterministic random subset (same seed -> same examples -> reproducible runs)."""
+    if limit is None or len(items) <= limit:
+        return items
+    import random
+
+    return random.Random(seed).sample(items, limit)
+
+
 def compat_training_kwargs(fields: set[str], warmup_ratio: float) -> dict[str, Any]:
     """Map version-specific TrainingArguments names (transformers 4.x vs 5.x).
 
@@ -119,7 +130,16 @@ def load_model_and_tokenizer(cfg: TrainConfig, precision: str) -> tuple[Any, Any
 def apply_lora(model: Any, cfg: TrainConfig) -> Any:
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
-    if cfg.quantization == "4bit":
+    if cfg.quantization == "4bit" and not cfg.upcast_non_quantized:
+        # what prepare_model_for_kbit_training does, minus the fp32 cast of all other weights
+        for param in model.parameters():
+            param.requires_grad = False
+        if cfg.gradient_checkpointing:
+            model.gradient_checkpointing_enable(
+                gradient_checkpointing_kwargs={"use_reentrant": False}
+            )
+            model.enable_input_require_grads()
+    elif cfg.quantization == "4bit":
         model = prepare_model_for_kbit_training(
             model,
             use_gradient_checkpointing=cfg.gradient_checkpointing,
@@ -161,6 +181,8 @@ def train(cfg: TrainConfig) -> dict[str, Any]:
         val_items, val_stats = tokenize_all(
             tokenizer, read_chat_jsonl(cfg.val_file), cfg.max_seq_len
         )
+    train_items = subsample(train_items, cfg.max_train_samples, cfg.seed)
+    val_items = subsample(val_items, cfg.max_val_samples, cfg.seed)
     if not train_items:
         raise ValueError("no training examples fit within max_seq_len")
 
@@ -222,9 +244,11 @@ def train(cfg: TrainConfig) -> dict[str, Any]:
         "precision": precision,
         "trainable_params": int(trainable),
         "total_params": int(total),
-        "train_examples": train_stats.kept,
+        "train_examples": len(train_items),
+        "train_examples_available": train_stats.kept,
         "train_dropped_too_long": train_stats.dropped_too_long,
-        "val_examples": val_stats.kept if val_stats else 0,
+        "val_examples": len(val_items),
+        "val_dropped_too_long": val_stats.dropped_too_long if val_stats else 0,
         "train_loss": float(result.training_loss),
         "eval_loss": float(final_eval["eval_loss"]) if "eval_loss" in final_eval else None,
         "train_runtime_s": round(time.time() - started, 1),
